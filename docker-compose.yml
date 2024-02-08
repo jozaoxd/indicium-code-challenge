@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres_database:
+    image: postgres:13  # Updated PostgreSQL version for better features and security
+    environment:
+      - POSTGRES_DB=northwind
+      - POSTGRES_USER=northwind_user
+      - POSTGRES_PASSWORD=thewindisblowing
+    volumes:
+      - db_storage:/var/lib/postgresql/data
+      - init_sql:/docker-entrypoint-initdb.d/northwind.sql
+    ports:
+      - "5432:5432"
+
+  airflow_scheduler:
+    image: apache/airflow:2.1.2  # Minor version update for Airflow
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://northwind_user:thewindisblowing@postgres_database/northwind
+      - AIRFLOW__CORE__FERNET_KEY=GJc4wuRWM61N91RJEl3sjcKsdRPCU18HiIGUa8zKPjw=  # Your provided Fernet key
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW_HOME=/opt/airflow
+    volumes:
+      - airflow_dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    depends_on:
+      - postgres_database
+    command: scheduler
+
+  airflow_webserver:
+    image: apache/airflow:2.1.2  # Ensuring consistency with the scheduler's version
+    environment:
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+      - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://northwind_user:thewindisblowing@postgres_database/northwind
+      - AIRFLOW__CORE__FERNET_KEY=GJc4wuRWM61N91RJEl3sjcKsdRPCU18HiIGUa8zKPjw=
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+      - AIRFLOW_HOME=/opt/airflow
+    volumes:
+      - airflow_dags:/opt/airflow/dags
+      - airflow_logs:/opt/airflow/logs
+      - airflow_plugins:/opt/airflow/plugins
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres_database
+    command: webserver
+
+volumes:
+  db_storage:
+  init_sql:
+  airflow_dags:
+  airflow_logs:
+  airflow_plugins:
